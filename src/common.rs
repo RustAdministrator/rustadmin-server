@@ -2,14 +2,17 @@ use clap::App;
 use hbb_common::{
     allow_err, anyhow::{Context, Result}, get_version_number, log, tokio, ResultType
 };
+use http::HeaderMap;
 use ini::Ini;
 use sodiumoxide::crypto::sign;
 use std::{
     io::prelude::*,
     io::Read,
-    net::SocketAddr,
+    net::{IpAddr, SocketAddr},
     time::{Instant, SystemTime},
 };
+
+const TRUST_PROXY_HEADERS_ENV: &str = "TRUST_PROXY_HEADERS";
 
 #[allow(dead_code)]
 pub(crate) fn get_expired_time() -> Instant {
@@ -93,6 +96,40 @@ pub fn get_arg(name: &str) -> String {
 #[inline]
 pub fn get_arg_or(name: &str, default: String) -> String {
     std::env::var(arg_name(name)).unwrap_or(default)
+}
+
+#[allow(dead_code)]
+pub fn trust_proxy_headers() -> bool {
+    matches!(
+        std::env::var(TRUST_PROXY_HEADERS_ENV)
+            .unwrap_or_default()
+            .trim()
+            .to_ascii_lowercase()
+            .as_str(),
+        "y" | "yes" | "true" | "1"
+    )
+}
+
+#[allow(dead_code)]
+pub fn apply_trusted_proxy_addr(addr: SocketAddr, headers: &HeaderMap) -> SocketAddr {
+    if !trust_proxy_headers() {
+        return addr;
+    }
+    let forwarded_ip = headers
+        .get("X-Real-IP")
+        .or_else(|| headers.get("X-Forwarded-For"))
+        .and_then(|header_value| header_value.to_str().ok())
+        .and_then(parse_forwarded_ip);
+    forwarded_ip.map(|ip| SocketAddr::new(ip, 0)).unwrap_or(addr)
+}
+
+fn parse_forwarded_ip(value: &str) -> Option<IpAddr> {
+    value
+        .split(',')
+        .next()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .and_then(|value| value.parse::<IpAddr>().ok())
 }
 
 #[allow(dead_code)]
@@ -215,4 +252,39 @@ async fn check_software_update_() -> hbb_common::ResultType<()> {
        log::info!("new version is available: {}", latest_release_version);
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{apply_trusted_proxy_addr, trust_proxy_headers, TRUST_PROXY_HEADERS_ENV};
+    use http::HeaderMap;
+    use std::{net::{IpAddr, Ipv4Addr, SocketAddr}, sync::Mutex};
+
+    static TEST_PROXY_HEADERS_LOCK: Mutex<()> = Mutex::new(());
+
+    #[test]
+    fn trusted_proxy_headers_are_disabled_by_default() {
+        let _guard = TEST_PROXY_HEADERS_LOCK.lock().unwrap();
+        std::env::remove_var(TRUST_PROXY_HEADERS_ENV);
+        assert!(!trust_proxy_headers());
+    }
+
+    #[test]
+    fn apply_trusted_proxy_addr_only_changes_addr_when_enabled() {
+        let _guard = TEST_PROXY_HEADERS_LOCK.lock().unwrap();
+        let original = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 4)), 21117);
+        let mut headers = HeaderMap::new();
+        headers.insert("X-Forwarded-For", "198.51.100.10, 10.0.0.1".parse().unwrap());
+
+        std::env::remove_var(TRUST_PROXY_HEADERS_ENV);
+        assert_eq!(apply_trusted_proxy_addr(original, &headers), original);
+
+        std::env::set_var(TRUST_PROXY_HEADERS_ENV, "Y");
+        assert_eq!(
+            apply_trusted_proxy_addr(original, &headers),
+            SocketAddr::new(IpAddr::V4(Ipv4Addr::new(198, 51, 100, 10)), 0)
+        );
+
+        std::env::remove_var(TRUST_PROXY_HEADERS_ENV);
+    }
 }
