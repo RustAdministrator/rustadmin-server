@@ -197,7 +197,7 @@ async fn check_cmd(cmd: &str, limiter: Limiter) -> String {
     match fds.next() {
         Some("h") => {
             res = format!(
-                "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
+                "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
                 "blacklist-add(ba) <ip>",
                 "blacklist-remove(br) <ip>",
                 "blacklist(b) <ip>",
@@ -209,6 +209,7 @@ async fn check_cmd(cmd: &str, limiter: Limiter) -> String {
                 "limit-speed(ls) [value(Mb/s)]",
                 "total-bandwidth(tb) [value(Mb/s)]",
                 "single-bandwidth(sb) [value(Mb/s)]",
+                "protection-stats(ps)",
                 "usage(u)"
             )
         }
@@ -358,6 +359,14 @@ async fn check_cmd(cmd: &str, limiter: Limiter) -> String {
                 );
             }
         }
+        Some("protection-stats" | "ps") => {
+            for line in crate::common::protection_limits_summary() {
+                let _ = writeln!(res, "{line}");
+            }
+            for (name, value) in crate::common::protection_stats_snapshot() {
+                let _ = writeln!(res, "{name}={value}");
+            }
+        }
         _ => {}
     }
     res
@@ -371,6 +380,10 @@ async fn io_loop(listener: TcpListener, listener2: TcpListener, key: &str) {
             res = listener.accept() => {
                 match res {
                     Ok((stream, addr))  => {
+                        if !crate::common::allow_connection_from_ip("hbbr-tcp", addr) {
+                            log::warn!("Rate limit exceeded for hbbr-tcp from {}", addr.ip());
+                            continue;
+                        }
                         stream.set_nodelay(true).ok();
                         handle_connection(stream, addr, &limiter, key, false).await;
                     }
@@ -383,6 +396,10 @@ async fn io_loop(listener: TcpListener, listener2: TcpListener, key: &str) {
             res = listener2.accept() => {
                 match res {
                     Ok((stream, addr))  => {
+                        if !crate::common::allow_connection_from_ip("hbbr-ws", addr) {
+                            log::warn!("Rate limit exceeded for hbbr-ws from {}", addr.ip());
+                            continue;
+                        }
                         stream.set_nodelay(true).ok();
                         handle_connection(stream, addr, &limiter, key, true).await;
                     }
@@ -489,6 +506,7 @@ async fn make_pair_(stream: impl StreamTrait, addr: SocketAddr, key: &str, limit
                         if let Some(reason) =
                             pending_relay_limit_reason(peers.len(), pending_for_ip)
                         {
+                            crate::common::record_protection_event("relay_pending_rejected");
                             log::warn!(
                                 "Rejecting relay request {} from {}: {}",
                                 rf.uuid,

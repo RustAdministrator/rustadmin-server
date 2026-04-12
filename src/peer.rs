@@ -171,8 +171,11 @@ impl PeerMap {
                     log::error!("db.insert_peer failed: {}", err);
                     return register_pk_response::Result::SERVER_ERROR;
                 }
-                Ok(guid) => {
+                Ok(database::InsertPeerResult::Inserted(guid)) => {
                     peer.write().await.guid = guid;
+                }
+                Ok(database::InsertPeerResult::PeerLimitReached) => {
+                    return register_pk_response::Result::PEER_LIMIT_REACHED;
                 }
             }
         } else {

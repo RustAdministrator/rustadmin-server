@@ -266,7 +266,12 @@ impl RendezvousServer {
                 res = socket.next() => {
                     match res {
                         Some(Ok((bytes, addr))) => {
-                            if let Err(err) = self.handle_udp(&bytes, addr.into(), socket, key).await {
+                            let addr: SocketAddr = addr.into();
+                            if !crate::common::allow_udp_packet_from_ip("hbbs-udp", addr) {
+                                log::warn!("Rate limit exceeded for hbbs-udp from {}", addr.ip());
+                                continue;
+                            }
+                            if let Err(err) = self.handle_udp(&bytes, addr, socket, key).await {
                                 log::error!("udp failure: {}", err);
                                 return LoopFailure::UdpSocket;
                             }
@@ -283,6 +288,10 @@ impl RendezvousServer {
                 res = listener2.accept() => {
                     match res {
                         Ok((stream, addr))  => {
+                            if !crate::common::allow_connection_from_ip("hbbs-nat", addr) {
+                                log::warn!("Rate limit exceeded for hbbs-nat from {}", addr.ip());
+                                continue;
+                            }
                             stream.set_nodelay(true).ok();
                             self.handle_listener2(stream, addr, key).await;
                         }
@@ -295,6 +304,10 @@ impl RendezvousServer {
                 res = listener3.accept() => {
                     match res {
                         Ok((stream, addr))  => {
+                            if !crate::common::allow_connection_from_ip("hbbs-ws", addr) {
+                                log::warn!("Rate limit exceeded for hbbs-ws from {}", addr.ip());
+                                continue;
+                            }
                             stream.set_nodelay(true).ok();
                             self.handle_listener(stream, addr, key, true).await;
                         }
@@ -307,6 +320,10 @@ impl RendezvousServer {
                 res = listener.accept() => {
                     match res {
                         Ok((stream, addr)) => {
+                            if !crate::common::allow_connection_from_ip("hbbs-main", addr) {
+                                log::warn!("Rate limit exceeded for hbbs-main from {}", addr.ip());
+                                continue;
+                            }
                             stream.set_nodelay(true).ok();
                             self.handle_listener(stream, addr, key, false).await;
                         }
@@ -457,12 +474,14 @@ impl RendezvousServer {
                             );
                         }
                     }
-                    if changed {
-                        self.pm.update_pk(id, peer, addr, rk.uuid, rk.pk, ip).await;
-                    }
+                    let result = if changed {
+                        self.pm.update_pk(id, peer, addr, rk.uuid, rk.pk, ip).await
+                    } else {
+                        register_pk_response::Result::OK
+                    };
                     let mut msg_out = RendezvousMessage::new();
                     msg_out.set_register_pk_response(RegisterPkResponse {
-                        result: register_pk_response::Result::OK.into(),
+                        result: result.into(),
                         ..Default::default()
                     });
                     socket.send(&msg_out, addr).await?
@@ -998,13 +1017,14 @@ impl RendezvousServer {
         match fds.next() {
             Some("h") => {
                 res = format!(
-                    "{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
+                    "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
                     "relay-servers(rs) <separated by ,>",
                     "reload-geo(rg)",
                     "ip-blocker(ib) [<ip>|<number>] [-]",
                     "ip-changes(ic) [<id>|<number>] [-]",
                     "punch-requests(pr) [<number>] [-]",
                     "always-use-relay(aur)",
+                    "protection-stats(ps)",
                     "test-geo(tg) <ip1> <ip2>"
                 )
             }
@@ -1136,6 +1156,14 @@ impl RendezvousServer {
                         "ALWAYS_USE_RELAY: {:?}",
                         ALWAYS_USE_RELAY.load(Ordering::SeqCst)
                     );
+                }
+            }
+            Some("protection-stats" | "ps") => {
+                for line in crate::common::protection_limits_summary() {
+                    let _ = writeln!(res, "{line}");
+                }
+                for (name, value) in crate::common::protection_stats_snapshot() {
+                    let _ = writeln!(res, "{name}={value}");
                 }
             }
             Some("test-geo" | "tg") => {
@@ -1394,10 +1422,14 @@ async fn test_hbbs(addr: SocketAddr, key: String) -> ResultType<()> {
 }
 
 fn prune_punch_requests(entries: &mut Vec<PunchReqEntry>) {
+    let before = entries.len();
     entries.retain(|entry| entry.tm.elapsed().as_secs() < PUNCH_REQ_RETENTION_SECS);
     if entries.len() > MAX_PUNCH_REQS {
         let excess = entries.len() - MAX_PUNCH_REQS;
         entries.drain(0..excess);
+    }
+    if before > entries.len() {
+        crate::common::record_protection_event("punch_requests_pruned");
     }
 }
 
