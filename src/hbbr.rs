@@ -18,7 +18,7 @@ fn main() -> ResultType<()> {
         ",
     );
     let matches = App::new("hbbr")
-        .version(version::VERSION)
+        .version(version::FULL_VERSION)
         .author("Purslane Ltd. <info@rustdesk.com>")
         .about("RustDesk Relay Server")
         .args_from_usage(&args)

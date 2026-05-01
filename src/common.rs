@@ -89,7 +89,7 @@ fn arg_name(name: &str) -> String {
 #[allow(dead_code)]
 pub fn init_args(args: &str, name: &str, about: &str) {
     let matches = App::new(name)
-        .version(crate::version::VERSION)
+        .version(crate::version::FULL_VERSION)
         .author("Purslane Ltd. <info@rustdesk.com>")
         .about(about)
         .args_from_usage(args)
