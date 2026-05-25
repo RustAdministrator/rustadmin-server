@@ -514,6 +514,7 @@ mod tests {
         let stale = now
             .checked_sub(Duration::from_secs(IP_CHANGE_DUR_X2 + 5))
             .unwrap_or(now);
+        let older = now.checked_sub(Duration::from_secs(10)).unwrap_or(now);
         let mut entries: IpChangesMap = HashMap::from([
             (
                 "stale-id".to_owned(),
@@ -532,7 +533,7 @@ mod tests {
             (
                 "peer-b".to_owned(),
                 (
-                    now,
+                    older,
                     HashMap::from([
                         ("198.51.100.4".to_owned(), 1),
                         ("198.51.100.5".to_owned(), 1),

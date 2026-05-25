@@ -30,7 +30,7 @@ use hbb_common::{
     tokio_util::codec::Framed,
     try_into_v4,
     udp::FramedSocket,
-    AddrMangle, ResultType,
+    AddrMangle, ResultType, TargetAddr,
 };
 use ipnetwork::Ipv4Network;
 use sodiumoxide::crypto::sign;
@@ -228,7 +228,7 @@ impl RendezvousServer {
                 }
             });
         };
-        let main_task = async move {
+        let main_task = Box::pin(async move {
             loop {
                 log::info!("Start");
                 match rs
@@ -260,8 +260,8 @@ impl RendezvousServer {
                     }
                 }
             }
-        };
-        let listen_signal = listen_signal();
+        });
+        let listen_signal = Box::pin(listen_signal());
         tokio::select!(
             res = main_task => res,
             res = listen_signal => res,
@@ -299,7 +299,17 @@ impl RendezvousServer {
                 res = socket.next() => {
                     match res {
                         Some(Ok((bytes, addr))) => {
-                            let addr: SocketAddr = addr.into();
+                            let addr = match addr {
+                                TargetAddr::Ip(addr) => addr,
+                                TargetAddr::Domain(domain, port) => {
+                                    log::warn!(
+                                        "Ignoring UDP packet with unresolved sender address {}:{}",
+                                        domain,
+                                        port
+                                    );
+                                    continue;
+                                }
+                            };
                             if !crate::common::allow_udp_packet_from_ip("hbbs-udp", addr) {
                                 log::warn!("Rate limit exceeded for hbbs-udp from {}", addr.ip());
                                 continue;
