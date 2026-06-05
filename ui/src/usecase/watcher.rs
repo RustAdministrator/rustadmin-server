@@ -25,6 +25,10 @@ pub async fn create(sender: Sender<Event>) {
 }
 
 fn watch<P: AsRef<Path>>(path: P, sender: Sender<Event>) -> Result<()> {
+    if !path.as_ref().is_dir() {
+        return Ok(());
+    }
+
     let (tx, rx) = bounded(10);
     let mut watcher = RecommendedWatcher::new(tx, Config::default())?;
     watcher.watch(path.as_ref(), RecursiveMode::Recursive)?;

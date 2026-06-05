@@ -1,5 +1,5 @@
 [package]
-name = "rustdesk_server"
+name = "rustadmin_server"
 version = "0.1.2"
 description = "RustAdmin server GUI"
 authors = ["elilchen"]

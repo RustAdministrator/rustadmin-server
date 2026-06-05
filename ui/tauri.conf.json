@@ -3,7 +3,7 @@
   "productName": "RustAdmin Server",
   "version": "0.1.2",
   "identifier": "io.github.rustadministrator.rustadmin.server",
-  "mainBinaryName": "rustdesk_server",
+  "mainBinaryName": "rustadmin_server",
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
