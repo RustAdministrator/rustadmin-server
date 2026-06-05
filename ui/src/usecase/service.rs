@@ -1,9 +1,9 @@
-use crate::adapter;
-
 pub fn create() -> Option<Box<dyn IDesktopService + Send>> {
-    if cfg!(target_os = "windows") {
-        return Some(Box::new(adapter::WindowsDesktopService::new()));
+    #[cfg(target_os = "windows")]
+    {
+        return Some(Box::new(crate::adapter::WindowsDesktopService::new()));
     }
+
     None
 }
 

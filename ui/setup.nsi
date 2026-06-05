@@ -11,10 +11,10 @@
 ####################################################################
 # File Info
 
-!define APP_NAME "RustDeskServer"
-!define PRODUCT_NAME "rustdesk_server"
+!define APP_NAME "RustAdminServer"
+!define PRODUCT_NAME "RustAdmin Server"
 !define PRODUCT_DESCRIPTION "Installer for ${PRODUCT_NAME}"
-!define COPYRIGHT "Copyright © 2021"
+!define COPYRIGHT "Copyright © 2026"
 !define VERSION "1.1.15"
 
 VIProductVersion "${VERSION}.0"

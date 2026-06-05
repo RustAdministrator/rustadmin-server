@@ -1,5 +1,5 @@
-pub mod view;
 pub mod service;
+pub mod view;
 
-pub use view::*;
 pub use service::*;
+pub use view::*;
