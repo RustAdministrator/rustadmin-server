@@ -265,7 +265,7 @@ mod tests {
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
             .as_nanos();
-        std::env::temp_dir().join(format!("rustdesk-server-{name}-{unique}.sqlite"))
+        std::env::temp_dir().join(format!("rustadmin-server-{name}-{unique}.sqlite"))
     }
 
     #[tokio::main(flavor = "multi_thread")]

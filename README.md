@@ -1,16 +1,16 @@
-# RustDesk Server Program
+# RustAdmin Server Program
 
-[![build](https://github.com/rustdesk/rustdesk-server/actions/workflows/build.yaml/badge.svg)](https://github.com/rustdesk/rustdesk-server/actions/workflows/build.yaml)
+[![build](https://github.com/rustadministrator/rustadmin-server/actions/workflows/build.yaml/badge.svg)](https://github.com/rustadministrator/rustadmin-server/actions/workflows/build.yaml)
 
-[**Download**](https://github.com/rustdesk/rustdesk-server/releases)
+[**Download**](https://github.com/rustadministrator/rustadmin-server/releases)
 
-[**Manual**](https://rustdesk.com/docs/en/self-host/)
+[**Upstream Manual**](https://rustdesk.com/docs/en/self-host/)
 
-[**FAQ**](https://github.com/rustdesk/rustdesk/wiki/FAQ)
+[**Upstream FAQ**](https://github.com/rustdesk/rustdesk/wiki/FAQ)
 
-[**How to migrate OSS to Pro**](https://rustdesk.com/docs/en/self-host/rustdesk-server-pro/installscript/#convert-from-open-source)
+[**Upstream OSS to Pro migration guide**](https://rustdesk.com/docs/en/self-host/rustdesk-server-pro/installscript/#convert-from-open-source)
 
-Self-host your own RustDesk server, it is free and open source.
+Self-host your own RustAdmin server, it is free and open source.
 
 ## How to build manually
 
@@ -20,16 +20,16 @@ cargo build --release
 
 Three executables will be generated in target/release.
 
-- hbbs - RustDesk ID/Rendezvous server
-- hbbr - RustDesk relay server
-- rustdesk-utils - RustDesk CLI utilities
+- hbbs - RustAdmin ID/Rendezvous server
+- hbbr - RustAdmin relay server
+- rustadmin-utils - RustAdmin CLI utilities
 
-You can find updated binaries on the [Releases](https://github.com/rustdesk/rustdesk-server/releases) page.
+You can find updated binaries on the [Releases](https://github.com/rustadministrator/rustadmin-server/releases) page.
 
-If you want extra features, [RustDesk Server Pro](https://rustdesk.com/pricing.html) might suit you better.
+For upstream Pro features, [RustDesk Server Pro](https://rustdesk.com/pricing.html) might suit you better.
 
-If you want to develop your own server, [rustdesk-server-demo](https://github.com/rustdesk/rustdesk-server-demo) might be a better and simpler start for you than this repo.
+If you want to develop your own upstream-compatible server, [rustdesk-server-demo](https://github.com/rustdesk/rustdesk-server-demo) might be a better and simpler start for you than this repo.
 
 ## Installation
 
-Please follow this [doc](https://rustdesk.com/docs/en/self-host/rustdesk-server-oss/)
+Please follow the upstream [self-hosting doc](https://rustdesk.com/docs/en/self-host/rustdesk-server-oss/)

@@ -1,0 +1,65 @@
+#!/bin/sh
+
+# PROVIDE: rustadmin_hbbr
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf
+# to enable this service:
+#
+# rustadmin_hbbr_enable (bool):            Set to NO by default.
+#               Set it to YES to enable rustadmin_hbbr.
+# rustadmin_hbbr_args (string):            Set extra arguments to pass to rustadmin_hbbr
+#               Default is "-k _".
+# rustadmin_hbbr_user (string):            Set user that rustadmin_hbbr will run under
+#               Default is "root".
+# rustadmin_hbbr_group (string):           Set group that rustadmin_hbbr will run under
+#               Default is "wheel".
+
+. /etc/rc.subr
+
+name=rustadmin_hbbr
+desc="RustAdmin Relay Server"
+rcvar=rustadmin_hbbr_enable
+
+load_rc_config $name
+
+: ${rustadmin_hbbr_enable:=NO}
+: ${rustadmin_hbbr_args="-k _"}
+: ${rustadmin_hbbr_user:=root}
+: ${rustadmin_hbbr_group:=wheel}
+
+pidfile=/var/run/rustadmin_hbbr.pid
+command=/usr/sbin/daemon
+procname=/usr/local/sbin/hbbr
+rustadmin_hbbr_chdir=/var/db/rustadmin-server
+command_args="-p ${pidfile} -o /var/log/rustadmin-hbbr.log ${procname} ${rustadmin_hbbr_args}"
+## If you want the daemon do its log over syslog comment out the above line and remove the comment from the below replacement
+#command_args="-p ${pidfile} -T ${name} ${procname} ${rustadmin_hbbr_args}"
+
+start_precmd=rustadmin_hbbr_startprecmd
+
+rustadmin_hbbr_startprecmd()
+{
+    if [ -e ${pidfile} ]; then
+        chown ${rustadmin_hbbr_user}:${rustadmin_hbbr_group} ${pidfile};
+    else
+        install -o ${rustadmin_hbbr_user} -g ${rustadmin_hbbr_group} /dev/null ${pidfile};
+    fi
+    if [ -e ${rustadmin_hbbr_chdir} ]; then
+        chown -R ${rustadmin_hbbr_user}:${rustadmin_hbbr_group} ${rustadmin_hbbr_chdir};
+        chmod -R 770 ${rustadmin_hbbr_chdir};
+    else
+        mkdir -m 770 ${rustadmin_hbbr_chdir};
+        chown ${rustadmin_hbbr_user}:${rustadmin_hbbr_group} ${rustadmin_hbbr_chdir};
+    fi
+    if [ -e /var/log/rustadmin-hbbr.log ]; then
+        chown -R ${rustadmin_hbbr_user}:${rustadmin_hbbr_group} /var/log/rustadmin-hbbr.log;
+        chmod 660 /var/log/rustadmin-hbbr.log;
+    else
+        install -o ${rustadmin_hbbr_user} -g ${rustadmin_hbbr_group} /dev/null /var/log/rustadmin-hbbr.log;
+        chmod 660 /var/log/rustadmin-hbbr.log;
+    fi
+}
+
+run_rc_command "$1"

@@ -1,27 +1,27 @@
-Source: rustdesk-server
+Source: rustadmin-server
 Section: net
 Priority: optional
-Maintainer: open-trade <info@rustdesk.com>
+Maintainer: RustAdministrator <rustadministrator@users.noreply.github.com>
 Build-Depends: debhelper (>= 10), pkg-config
 Standards-Version: 4.5.0
-Homepage: https://rustdesk.com/
+Homepage: https://github.com/rustadministrator/rustadmin-server/
 
-Package: rustdesk-server-hbbs
+Package: rustadmin-server-hbbs
 Architecture: {{ ARCH }}
 Depends: systemd ${misc:Depends}
-Description: RustDesk server
- Self-host your own RustDesk server, it is free and open source.
+Description: RustAdmin server
+ Self-host your own RustAdmin server, it is free and open source.
 
-Package: rustdesk-server-hbbr
+Package: rustadmin-server-hbbr
 Architecture: {{ ARCH }}
 Depends: systemd ${misc:Depends}
-Description: RustDesk server
- Self-host your own RustDesk server, it is free and open source.
- This package contains the RustDesk relay server.
+Description: RustAdmin server
+ Self-host your own RustAdmin server, it is free and open source.
+ This package contains the RustAdmin relay server.
 
-Package: rustdesk-server-utils
+Package: rustadmin-server-utils
 Architecture: {{ ARCH }}
 Depends: ${misc:Depends}
-Description: RustDesk server
- Self-host your own RustDesk server, it is free and open source.
- This package contains the rustdesk-utils binary.
+Description: RustAdmin server
+ Self-host your own RustAdmin server, it is free and open source.
+ This package contains the rustadmin-utils binary.

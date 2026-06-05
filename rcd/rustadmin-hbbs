@@ -1,0 +1,68 @@
+#!/bin/sh
+
+# PROVIDE: rustadmin_hbbs
+# REQUIRE: LOGIN
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf
+# to enable this service:
+#
+# rustadmin_hbbs_enable (bool):            Set to NO by default.
+#               Set it to YES to enable rustadmin_hbbs.
+# rustadmin_hbbs_ip (string):              Set IP address/hostname of relay server to use
+#               Defaults to "127.0.0.1", please replace with your server hostname/IP.
+# rustadmin_hbbs_args (string):            Set extra arguments to pass to rustadmin_hbbs
+#               Default is "-r ${rustadmin_hbbs_ip} -k _".
+# rustadmin_hbbs_user (string):            Set user that rustadmin_hbbs will run under
+#               Default is "root".
+# rustadmin_hbbs_group (string):           Set group that rustadmin_hbbs will run under
+#               Default is "wheel".
+
+. /etc/rc.subr
+
+name=rustadmin_hbbs
+desc="RustAdmin ID/Rendezvous Server"
+rcvar=rustadmin_hbbs_enable
+
+load_rc_config $name
+
+: ${rustadmin_hbbs_enable:=NO}
+: ${rustadmin_hbbs_ip:=127.0.0.1}
+: ${rustadmin_hbbs_args="-r ${rustadmin_hbbs_ip} -k _"}
+: ${rustadmin_hbbs_user:=root}
+: ${rustadmin_hbbs_group:=wheel}
+
+pidfile=/var/run/rustadmin_hbbs.pid
+command=/usr/sbin/daemon
+procname=/usr/local/sbin/hbbs
+rustadmin_hbbs_chdir=/var/db/rustadmin-server
+command_args="-p ${pidfile} -o /var/log/rustadmin-hbbs.log ${procname} ${rustadmin_hbbs_args}"
+## If you want the daemon to do its log over syslog, comment out the above line and remove the comment from the below replacement
+#command_args="-p ${pidfile} -T ${name} ${procname} ${rustadmin_hbbs_args}"
+
+start_precmd=rustadmin_hbbs_startprecmd
+
+rustadmin_hbbs_startprecmd()
+{
+    if [ -e ${pidfile} ]; then
+        chown ${rustadmin_hbbs_user}:${rustadmin_hbbs_group} ${pidfile};
+    else
+        install -o ${rustadmin_hbbs_user} -g ${rustadmin_hbbs_group} /dev/null ${pidfile};
+    fi
+    if [ -e ${rustadmin_hbbs_chdir} ]; then
+        chown -R ${rustadmin_hbbs_user}:${rustadmin_hbbs_group} ${rustadmin_hbbs_chdir};
+        chmod -R 770 ${rustadmin_hbbs_chdir};
+    else
+        mkdir -m 770 ${rustadmin_hbbs_chdir};
+        chown ${rustadmin_hbbs_user}:${rustadmin_hbbs_group} ${rustadmin_hbbs_chdir};
+    fi
+    if [ -e /var/log/rustadmin-hbbs.log ]; then
+        chown -R ${rustadmin_hbbs_user}:${rustadmin_hbbs_group} /var/log/rustadmin-hbbs.log;
+        chmod 660 /var/log/rustadmin-hbbs.log;
+    else
+        install -o ${rustadmin_hbbs_user} -g ${rustadmin_hbbs_group} /dev/null /var/log/rustadmin-hbbs.log;
+        chmod 660 /var/log/rustadmin-hbbs.log;
+    fi
+}
+
+run_rc_command "$1"
